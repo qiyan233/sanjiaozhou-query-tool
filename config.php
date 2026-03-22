@@ -1,4 +1,8 @@
 <?php
+if (!defined('DISABLE_SSL_VERIFY')) {
+    define('DISABLE_SSL_VERIFY', false);
+}
+
 
 
 // 文件存储配置

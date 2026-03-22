@@ -338,8 +338,8 @@ try {
     if ($adminCount == 0) {
         // 创建默认管理员账户
         $username = 'admin';
-        $password = 'admin123'; // 默认密码
-        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        $generatedPassword = bin2hex(random_bytes(6));
+        $passwordHash = password_hash($generatedPassword, PASSWORD_DEFAULT);
         $role = 'admin';
         $status = 1;
         
@@ -356,8 +356,8 @@ try {
                 <div class="step-title">默认管理员账户创建成功</div>
                 <div class="step-content">
                     <p><strong>用户名:</strong> ' . $username . '</p>
-                    <p><strong>密码:</strong> ' . $password . '</p>
-                    <p class="warning" style="margin-top: 10px;">请在首次登录后立即修改密码!</p>
+                    <p><strong>临时密码:</strong> ' . $generatedPassword . '</p>
+                    <p class="warning" style="margin-top: 10px;">请在首次登录后立即修改密码！请不要在公开环境中复用该密码。</p>
                 </div>
               </div>';
     } else {

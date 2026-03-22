@@ -26,23 +26,29 @@ $dateRange = isset($_GET['date_range']) ? trim($_GET['date_range']) : '';
 $sortBy = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'created_at';
 $sortOrder = isset($_GET['sort_order']) && $_GET['sort_order'] === 'asc' ? 'asc' : 'desc';
 
+// 查询数据
+$database = new Database();
+
 // 构建查询条件
 $conditions = [];
 if (!empty($search)) {
-    $conditions[] = "(description LIKE '%{$search}%' OR ip_address LIKE '%{$search}%')";
+    $safeSearch = $database->quote('%' . $search . '%');
+    $conditions[] = "(description LIKE {$safeSearch} OR ip_address LIKE {$safeSearch})";
 }
 
 if (!empty($filterOperator)) {
-    $conditions[] = "operator = '{$filterOperator}'";
+    $safeOperator = $database->quote($filterOperator);
+    $conditions[] = "operator = {$safeOperator}";
 }
 
 if (!empty($filterType)) {
-    $conditions[] = "operation_type = '{$filterType}'";
+    $safeType = $database->quote($filterType);
+    $conditions[] = "operation_type = {$safeType}";
 }
 
 if (!empty($dateRange)) {
     // 解析日期范围，格式为：2023-01-01 - 2023-01-31
-    $dateParts = explode('-', $dateRange);
+    $dateParts = preg_split('/\s+-\s+/', $dateRange);
     if (count($dateParts) === 2) {
         $startDate = trim($dateParts[0]);
         $endDate = trim($dateParts[1]);
@@ -50,13 +56,12 @@ if (!empty($dateRange)) {
         // 验证日期格式
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) && 
             preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
-            $conditions[] = "created_at BETWEEN '{$startDate} 00:00:00' AND '{$endDate} 23:59:59'";
+            $safeStartDate = $database->quote($startDate . ' 00:00:00');
+            $safeEndDate = $database->quote($endDate . ' 23:59:59');
+            $conditions[] = "created_at BETWEEN {$safeStartDate} AND {$safeEndDate}";
         }
     }
 }
-
-// 查询数据
-$database = new Database();
 
 // 获取总数
 $totalSql = "SELECT COUNT(*) as count FROM operation_logs";
@@ -113,7 +118,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
     
     // 设置响应头
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="operation_logs_export_"' . date('Ymd_His') . '.csv');
+    header('Content-Disposition: attachment; filename="operation_logs_export_' . date('Ymd_His') . '.csv"');
     
     // 创建文件流
     $output = fopen('php://output', 'w');

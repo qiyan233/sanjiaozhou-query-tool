@@ -161,7 +161,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
         $database->insert('operation_logs', [
             'operation_type' => 'delete_account',
             'operator' => $_SESSION['admin_username'],
-            'ip_address' => $_SERVER['REMOTE_ADDR'],
+            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
             'description' => "删除账号: ID={$accountId}, 已重置ID序列"
         ]);
         
@@ -193,7 +193,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
     
     // 设置响应头
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="accounts_export_"' . date('Ymd_His') . '.csv');
+    header('Content-Disposition: attachment; filename="accounts_export_' . date('Ymd_His') . '.csv"');
     
     // 创建文件流
     $output = fopen('php://output', 'w');
@@ -206,7 +206,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
     
     // 写入数据
     foreach ($exportData as $row) {
-        $statusText = $row['status'] ? $row['status'] : '未知';
+        $statusMap = [
+            'online' => '在线',
+            'offline' => '离线',
+            'banned' => '封禁',
+            'frozen' => '冻结',
+            'unknown' => '未知'
+        ];
+        $statusKey = !empty($row['status']) ? $row['status'] : 'unknown';
+        $statusText = isset($statusMap[$statusKey]) ? $statusMap[$statusKey] : $statusKey;
         fputcsv($output, [
             $row['id'],
             $row['access_token'],
@@ -224,7 +232,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
     $database->insert('operation_logs', [
         'operation_type' => 'export_accounts',
         'operator' => $_SESSION['admin_username'],
-        'ip_address' => $_SERVER['REMOTE_ADDR'],
+        'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
         'description' => "导出账号数据，共{$totalCount}条"
     ]);
     

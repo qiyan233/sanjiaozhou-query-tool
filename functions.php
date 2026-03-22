@@ -50,8 +50,9 @@ function fetch_account_data($access_token, $openid) {
         'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36'
     ]);
     // 禁用SSL证书验证以解决SSL证书错误问题
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    $disableSslVerify = defined('DISABLE_SSL_VERIFY') && DISABLE_SSL_VERIFY;
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, !$disableSslVerify);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $disableSslVerify ? 0 : 2);
 
     $response = curl_exec($ch);
     $error = curl_error($ch);

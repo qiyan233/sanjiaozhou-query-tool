@@ -174,7 +174,7 @@ try {
     }
 } catch (Exception $e) {
     // 记录错误日志
-    error_log('账号数据更新失败: ' . $e->getMessage(), 3, __DIR__ . '/../logs/error.log');
+    error_log('账号数据更新失败: ' . $e->getMessage() . PHP_EOL, 3, __DIR__ . '/../logs/error.log');
     // 返回错误响应
     echo json_encode(['success' => false, 'error' => '数据更新失败：' . $e->getMessage()]);
 }

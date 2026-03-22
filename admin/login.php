@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $database->insert('operation_logs', [
                     'operation_type' => 'admin_login',
                     'operator' => $username,
-                    'ip_address' => $_SERVER['REMOTE_ADDR'],
+                    'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
                     'description' => "管理员登录: {$username}"
                 ]);
                 

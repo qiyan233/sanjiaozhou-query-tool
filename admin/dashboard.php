@@ -50,7 +50,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         $database->insert('operation_logs', [
             'operation_type' => 'admin_logout',
             'operator' => $_SESSION['admin_username'],
-            'ip_address' => $_SERVER['REMOTE_ADDR'],
+            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
             'description' => "管理员退出: {$_SESSION['admin_username']}"
         ]);
     } catch (Exception $e) {
@@ -387,11 +387,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
                                 <div class="status-label">
                                     <?php 
                                     switch ($item['status']) {
-                                        case 'normal': echo '正常'; break;
-                                        case 'error': echo '异常'; break;
+                                        case 'online': echo '在线'; break;
+                                        case 'offline': echo '离线'; break;
+                                        case 'banned': echo '封禁'; break;
                                         case 'frozen': echo '冻结'; break;
-                                        case 'expired': echo '过期'; break;
-                                        default: echo '未知';
+                                        case 'unknown': echo '未知'; break;
+                                        default: echo $item['status'] ? $item['status'] : '未知';
                                     }
                                     ?>
                                 </div>

@@ -32,14 +32,15 @@ if (!in_array($sortOrder, ['asc', 'desc'])) {
     $sortOrder = 'desc';
 }
 
+// 查询数据
+$database = new Database();
+
 // 构建查询条件
 $conditions = [];
 if (!empty($search)) {
-    $conditions[] = "username LIKE '%{$search}%'";
+    $safeSearch = $database->quote('%' . $search . '%');
+    $conditions[] = "username LIKE {$safeSearch}";
 }
-
-// 查询数据
-$database = new Database();
 
 // 获取总数
 $totalSql = "SELECT COUNT(*) as count FROM admins";
@@ -85,7 +86,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
             $database->insert('operation_logs', [
                 'operation_type' => 'delete_admin',
                 'operator' => $_SESSION['admin_username'],
-                'ip_address' => $_SERVER['REMOTE_ADDR'],
+                'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
                 'description' => "删除管理员账号: ID={$adminId}"
             ]);
             
@@ -101,10 +102,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
 // 处理状态变更
 if (isset($_GET['action']) && $_GET['action'] === 'toggle_status' && isset($_GET['id'])) {
     $adminId = intval($_GET['id']);
-    $newStatus = isset($_GET['status']) && $_GET['status'] === 'active' ? 'inactive' : 'active';
+    $currentStatus = isset($_GET['status']) ? intval($_GET['status']) : 1;
+    $newStatus = $currentStatus === 1 ? 0 : 1;
     
     // 检查是否是当前登录用户
-    if ($adminId == $_SESSION['admin_id']) {
+    if ($adminId == $_SESSION['admin_id'] && $newStatus === 0) {
         $error = '不能禁用当前登录的管理员账号';
     } else {
         try {
@@ -112,11 +114,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'toggle_status' && isset($_GET
             $database->update('admins', ['status' => $newStatus], ['id' => $adminId]);
             
             // 记录操作日志
-            $statusText = $newStatus === 'active' ? '启用' : '禁用';
+            $statusText = $newStatus === 1 ? '启用' : '禁用';
             $database->insert('operation_logs', [
                 'operation_type' => 'toggle_admin_status',
                 'operator' => $_SESSION['admin_username'],
-                'ip_address' => $_SERVER['REMOTE_ADDR'],
+                'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
                 'description' => "{$statusText}管理员账号: ID={$adminId}"
             ]);
             
@@ -141,7 +143,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_admin') {
         $error = '请填写所有必填字段';
     } else {
         // 检查用户名是否已存在
-        $existingUser = $database->fetchOne("SELECT id FROM admins WHERE username = '{$username}'");
+        $existingUser = $database->selectOne('admins', ['id'], ['username' => $username]);
         if (!empty($existingUser)) {
             $error = '用户名已存在';
         } else {
@@ -149,10 +151,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_admin') {
                 // 创建管理员
                 $database->insert('admins', [
                     'username' => $username,
-                    // 'email' => $email, // 邮箱字段在数据库中不存在
-                    'password' => password_hash($password, PASSWORD_DEFAULT),
+                    'password_hash' => password_hash($password, PASSWORD_DEFAULT),
                     'role' => $role,
-                    'status' => 'active',
+                    'status' => 1,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
@@ -161,7 +162,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_admin') {
                 $database->insert('operation_logs', [
                     'operation_type' => 'add_admin',
                     'operator' => $_SESSION['admin_username'],
-                    'ip_address' => $_SERVER['REMOTE_ADDR'],
+                    'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
                     'description' => "添加管理员账号: {$username}"
                 ]);
                 
@@ -735,8 +736,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_admin') {
                                     <!-- <td><?php echo $admin['email']; ?></td> --> <!-- 邮箱字段在数据库中不存在 -->
                                     <td><?php echo $admin['role']; ?></td>
                                     <td>
-                                        <span class="status-badge status-<?php echo $admin['status']; ?>">
-                                            <?php echo $admin['status'] === 'active' ? '启用' : '禁用'; ?>
+                                        <span class="status-badge status-<?php echo intval($admin['status']) === 1 ? 'active' : 'inactive'; ?>">
+                                            <?php echo intval($admin['status']) === 1 ? '启用' : '禁用'; ?>
                                         </span>
                                     </td>
                                     <td><?php echo $admin['created_at']; ?></td>
@@ -745,12 +746,11 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_admin') {
                                         <?php if ($admin['id'] == $_SESSION['admin_id']): ?>
                                             <span style="color: #999; font-size: 12px;">当前账号</span>
                                         <?php else: ?>
-                                            <a href="?action=toggle_status&id=<?php echo $admin['id']; ?>&status=<?php echo $admin['status']; ?>" 
-                                               class="btn btn-sm <?php echo $admin['status'] === 'active' ? 'btn-secondary' : 'btn-success'; ?>" 
-                                               onclick="return confirm('确定要<?php echo $admin['status'] === 'active' ? '禁用' : '启用'; ?>这个管理员吗？');">
-                                                <?php echo $admin['status'] === 'active' ? '禁用' : '启用'; ?>
+                                            <a href="?action=toggle_status&id=<?php echo $admin['id']; ?>&status=<?php echo intval($admin['status']); ?>" 
+                                               class="btn btn-sm <?php echo intval($admin['status']) === 1 ? 'btn-secondary' : 'btn-success'; ?>" 
+                                               onclick="return confirm('确定要<?php echo intval($admin['status']) === 1 ? '禁用' : '启用'; ?>这个管理员吗？');">
+                                                <?php echo intval($admin['status']) === 1 ? '禁用' : '启用'; ?>
                                             </a>
-                                            <a href="edit_admin.php?id=<?php echo $admin['id']; ?>" class="btn btn-sm">编辑</a>
                                             <a href="?action=delete&id=<?php echo $admin['id']; ?>" class="btn btn-sm btn-danger" 
                                                onclick="return confirm('确定要删除这个管理员吗？此操作不可恢复。');">删除</a>
                                         <?php endif; ?>

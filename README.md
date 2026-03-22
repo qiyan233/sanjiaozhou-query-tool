@@ -51,11 +51,13 @@ cd sanjiaozhou-query-tool
 
 2. **配置数据库**
 ```bash
-# 复制配置文件示例
-cp database/config.example.php database/config.php
+# 推荐：复制本地私有配置文件（不要提交到 GitHub）
+cp database/config.example.php database/config.local.php
 
-# 编辑配置文件，填入数据库信息
+# 编辑 database/config.local.php，填入数据库信息
 ```
+
+也可以直接通过环境变量配置数据库连接。仓库中的 `database/config.php` 为可公开的安全入口文件，会优先读取 `database/config.local.php`，其次读取环境变量。
 
 3. **初始化数据库**
 ```bash
@@ -66,9 +68,9 @@ http://your-domain/init_database.php
 4. **登录后台**
 ```
 默认管理员账号: admin
-默认管理员密码: admin123
+临时密码会在首次执行 init_database.php 时随机生成，并显示在初始化页面上。
 
-⚠️ 请在首次登录后立即修改密码！
+⚠️ 请在首次登录后立即修改密码，不要在公开环境复用临时密码！
 ```
 
 ## 使用说明
